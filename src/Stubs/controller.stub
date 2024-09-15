@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Services\{{model}}Service;
+use App\Http\Requests\{{model}}Request;
+use Illuminate\Support\Facades\DB;
+use Exception;
+
+class {{model}}Controller extends Controller
+{
+    protected ${{model}}Service;
+
+    public function __construct({{model}}Service ${{model}}Service)
+    {
+        $this->{{model}}Service = ${{model}}Service;
+    }
+
+    public function index()
+    {
+        return response()->json($this->{{model}}Service->fetch());
+    }
+
+    public function show($uuid)
+    {
+        try {
+            $record = $this->{{model}}Service->get($uuid);
+            if (!$record) {
+                return response()->json(['message' => 'Record not found'], 404);
+            }
+            return response()->json($record);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'An error occurred'], 500);
+        }
+    }
+
+    public function store({{model}}Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $this->{{model}}Service->store($request);
+            DB::commit();
+            return response()->json(['message' => '{{model}} created successfully'], 201);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to create {{model}}', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function update($uuid, {{model}}Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $record = $this->{{model}}Service->get($uuid);
+            if (!$record) {
+                return response()->json(['message' => 'Record not found'], 404);
+            }
+            $this->{{model}}Service->update($request, $uuid);
+            DB::commit();
+            return response()->json(['message' => '{{model}} updated successfully']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to update {{model}}', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy($uuid)
+    {
+        DB::beginTransaction();
+        try {
+            $record = $this->{{model}}Service->get($uuid);
+            if (!$record) {
+                return response()->json(['message' => 'Record not found'], 404);
+            }
+            $this->{{model}}Service->destroy($uuid);
+            DB::commit();
+            return response()->json(['message' => '{{model}} deleted successfully']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to delete {{model}}', 'error' => $e->getMessage()], 500);
+        }
+    }
+}

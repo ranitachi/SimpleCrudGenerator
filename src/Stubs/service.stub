@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\{{model}};
+
+class {{model}}Service
+{
+    protected $model;
+
+    public function __construct({{model}} $model)
+    {
+        $this->model = $model;
+    }
+
+    public function fetch()
+    {
+        return $this->model->orderBy('id')->get();
+    }
+
+    public function fetchDT()
+    {
+        return $this->model->orderBy('id');
+    }
+
+    public function get($uuid)
+    {
+        return $this->model->where('uuid', $uuid)->first();
+    }
+
+    public function store($request)
+    {
+        $this->model->create([
+            'column_1' => $request->input('column_1', ''),
+            'column_2' => $request->input('column_2', ''),
+            // Add other fields here
+        ]);
+    }
+
+    public function update($request, $uuid)
+    {
+        $get = $this->get($uuid);
+        $data = [
+            'column_1' => $request->input('column_1', $get->column_1),
+            'column_2' => $request->input('column_2', $get->column_2),
+            // Add other fields here
+        ];
+        $this->model->where('uuid', $uuid)->update($data);
+    }
+
+    public function destroy($uuid)
+    {
+        $this->model->where('uuid', $uuid)->delete();
+    }
+}

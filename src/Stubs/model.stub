@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class {{model}} extends Model
+{
+    use SoftDeletes;
+
+    protected $table = '{{table}}';
+
+    protected $fillable = [
+        // List your fillable columns here
+    ];
+
+    protected $dates = ['deleted_at'];
+
+    // Additional model properties and methods
+}
