@@ -2,10 +2,10 @@
 
 namespace Fcn\SimpleCrudGenerator\Commands;
 
+use Illuminate\Support\Str;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
-use Fcn\SimpleCrudGenerator\CrudSchemaParser;
+use Fcn\SimpleCrudGenerator\Helpers\CrudSchemaParser;
 
 class GenerateCrudCommand extends Command
 {

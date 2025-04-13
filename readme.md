@@ -1,88 +1,148 @@
-
 # SimpleCrudGenerator
 
-[![Latest Stable Version](https://poser.pugx.org/ranitachi/simple-crud-generator/v/stable)](https://packagist.org/packages/ranitachi/simple-crud-generator)
-[![Total Downloads](https://poser.pugx.org/ranitachi/simple-crud-generator/downloads)](https://packagist.org/packages/ranitachi/simple-crud-generator)
+![Version](https://img.shields.io/badge/version-v1.1-blue.svg)
+
+[![Latest Stable Version](https://poser.pugx.org/ranitachi/simple-crud-generator/v/stable)](https://packagist.org/packages/ranitachi/simple-crud-generator)  
+[![Total Downloads](https://poser.pugx.org/ranitachi/simple-crud-generator/downloads)](https://packagist.org/packages/ranitachi/simple-crud-generator)  
 [![License](https://poser.pugx.org/ranitachi/simple-crud-generator/license)](https://packagist.org/packages/ranitachi/simple-crud-generator)
 
-## Introduction
+---
 
-**SimpleCrudGenerator** is a package designed to easily generate CRUD operations for your Laravel applications. With one command, you can generate models, migrations, controllers, services, and requests based on a database table name.
+## 📌 Introduction
 
-## Installation
+**SimpleCrudGenerator** adalah package Laravel untuk mempercepat proses pembuatan CRUD (Create, Read, Update, Delete).  
+Dengan **1 perintah artisan**, kamu akan langsung dapat:
 
-You can install the package via Composer:
+- Model dengan soft deletes
+- Controller RESTful
+- Service logic terpisah
+- Request validator
+- Migration table
+- Blade view siap pakai (index, create, edit)
+- Komponen Blade universal: `<x-form-inputs />` & `<x-datatable />`
 
-### Step 1: Install the Package
+---
 
-Run the following Composer command in your Laravel project:
+## ⚙️ Installation
+
+### 1. Install via Composer
 
 ```bash
 composer require ranitachi/simple-crud-generator
 ```
 
-### Step 2: Publish the Service Provider (optional)
+### 2. (Optional) Tambahkan ServiceProvider secara manual
 
-In most cases, the service provider will be automatically discovered by Laravel. However, if you need to manually add it, include the service provider in your `config/app.php` file:
+Jika auto-discovery tidak aktif, daftarkan provider:
 
 ```php
 'providers' => [
-    // Other service providers
     Fcn\SimpleCrudGenerator\SimpleCrudGeneratorServiceProvider::class,
 ];
 ```
 
-### Step 3: Generate CRUD Files
+### 3. Publish Stubs dan Blade View
 
-Once installed, you can generate the CRUD files using the following Artisan command:
+```bash
+php artisan vendor:publish --provider="Fcn\SimpleCrudGenerator\SimpleCrudGeneratorServiceProvider"
+```
+
+---
+
+## 🚀 Usage
 
 ```bash
 php artisan make:simple-crud {table_name}
 ```
 
-Replace `{table_name}` with the name of the database table for which you want to generate the CRUD files.
-
-For example:
+Contoh:
 
 ```bash
 php artisan make:simple-crud posts
 ```
 
-This will generate the following:
-- Migration file for the `posts` table.
-- Model with `SoftDeletes`.
-- Controller with basic CRUD operations.
-- Service to handle business logic.
-- Request class for validation.
+Yang akan digenerate:
 
-## Usage Example
+- ✅ Model → `app/Models/Post.php`
+- ✅ Controller → `app/Http/Controllers/PostController.php`
+- ✅ Service → `app/Services/PostService.php`
+- ✅ Request → `app/Http/Requests/PostRequest.php`
+- ✅ Migration → `database/migrations/..._create_posts_table.php`
+- ✅ View → `resources/views/pages/post/{index,create,edit}.blade.php`
 
-After running the generator command, you can immediately start using the generated files.
+---
 
-- **Model**: The model will be located at `app/Models/Post.php` if your table is named `posts`.
-- **Controller**: The controller will be generated in `app/Http/Controllers/PostController.php`.
-- **Service**: The service class will be in `app/Services/PostService.php`, responsible for handling business logic.
-- **Request**: The request file will be generated at `app/Http/Requests/PostRequest.php` and can be used for validation.
+## ✨ Fitur Unggulan (v1.1)
 
-### Routes Example:
+- 🔍 **Auto-detect field**: `text`, `textarea`, `select`, `file`, `image`, `date`, `number`, `wysiwyg`
+- 🧠 Field seperti `flag`, `status`, `photo`, `desc` langsung dikenali
+- 📄 WYSIWYG Editor via Summernote
+- 🖼️ Image preview langsung dari input file
+- 📊 Auto config kolom datatable (index page)
+- 🧩 `x-form-inputs` dan `x-datatable` support full kolom dinamis
+- 🛡️ Validasi otomatis di `Request` (via parser)
 
-You can define the route in `routes/web.php` to use the generated controller:
+---
+
+## 🧩 Contoh Route & Komponen Blade
+
+Tambahkan ke `routes/web.php`:
 
 ```php
-Route::resource('posts', App\Http\Controllers\PostController::class);
+Route::prefix('admin')->group(function () {
+    Route::resource('posts', \App\Http\Controllers\PostController::class);
+});
 ```
 
-## Features
+Di `index.blade.php`:
 
-- Automatically generates migration, model, controller, request, and service files based on a given table name.
-- Supports soft deletes by default in generated models.
-- Generates RESTful controllers with all CRUD methods.
-- Includes basic validation via Request classes.
+```blade
+<x-datatable :columns="$columns" ajax="{{ route('posts.index') }}" />
+```
 
-## Contributing
+Di `create/edit.blade.php`:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```blade
+<x-form-inputs :fields="$fields" />
+```
 
-## License
+---
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+## 🗂️ Struktur File
+
+```
+├── app/
+│   ├── Models/Post.php
+│   ├── Services/PostService.php
+│   └── Http/
+│       ├── Controllers/PostController.php
+│       └── Requests/PostRequest.php
+
+├── resources/views/pages/post/
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   └── edit.blade.php
+
+├── resources/views/components/
+│   ├── form-inputs.blade.php
+│   └── datatable.blade.php
+```
+
+---
+
+## 📜 Changelog
+
+Lihat [`CHANGELOG.md`](CHANGELOG.md) untuk detail update fitur per versi.
+
+---
+
+## 👨‍💻 Contribution
+
+Pull request, ide, dan kolaborasi sangat diterima!  
+Yuk ikut bantu sempurnakan generator CRUD ini 🔥
+
+---
+
+## 🧾 License
+
+MIT © 2025 – by [ranitachi](https://github.com/ranitachi)
