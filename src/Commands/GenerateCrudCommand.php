@@ -3,92 +3,120 @@
 namespace Fcn\SimpleCrudGenerator\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use Fcn\SimpleCrudGenerator\Helpers\CrudSchemaParser;
 
 class GenerateCrudCommand extends Command
 {
-    protected $signature = 'make:simple-crud {table}';
-    protected $description = 'Generate CRUD files based on table name';
+    protected $signature = 'make:simple-crud {table} {--force}';
+    protected $description = 'Generate CRUD files based on table name with dynamic parsing';
 
     public function handle()
     {
         $table = $this->argument('table');
         $model = Str::studly(Str::singular($table));
+        $title = Str::headline(Str::singular($table));
 
-        // Check directories and create if they don't exist
-        $this->checkAndCreateDirectory(app_path('Models'));
-        $this->checkAndCreateDirectory(app_path('Http/Controllers'));
-        $this->checkAndCreateDirectory(app_path('Http/Requests'));
-        $this->checkAndCreateDirectory(app_path('Services'));
-        $this->checkAndCreateDirectory(database_path('migrations'));
+        if (!Schema::hasTable($table) && !$this->option('force')) {
+            $this->error("Tabel '{$table}' belum ada di database.");
+            $this->warn("Silakan buat tabel atau gunakan opsi --force jika ingin lanjut.");
+            return;
+        }
 
-        // Generate files
+        $columns = Schema::hasTable($table)
+            ? CrudSchemaParser::getColumns($table)
+            : [];
+
+        $fillable = implode(",\n", array_map(fn($col) => "        '" . $col['name'] . "'", $columns));
+        $rules = implode(",\n", array_map(fn($col) => "            '" . $col['name'] . "' => '" . $col['rule'] . "'", $columns));
+        $fields = implode(",\n", array_map(fn($col) => "            ['type' => '" . $col['input'] . "', 'name' => '" . $col['name'] . "', 'label' => '" . Str::headline($col['name']) . "']", $columns));
+        $datatable = implode(",\n", array_map(fn($col) => "            ['label' => '" . Str::headline($col['name']) . "', 'data' => '" . $col['name'] . "']", $columns));
+
+        $this->generateFile('model', 'Models', "{$model}.php", [
+            '{{model}}' => $model,
+            '{{table}}' => $table,
+            '{{fillable}}' => $fillable,
+        ]);
+
+        $this->generateFile('request', 'Http/Requests', "{$model}Request.php", [
+            '{{model}}' => $model,
+            '{{rules}}' => $rules,
+        ]);
+
+        $this->generateFile('service', 'Services', "{$model}Service.php", [
+            '{{model}}' => $model,
+            '{{fields}}' => $fields,
+            '{{datatable}}' => $datatable,
+        ]);
+
+        $this->generateFile('controller', 'Http/Controllers', "{$model}Controller.php", [
+            '{{model}}' => $model,
+        ]);
+
         $this->generateMigration($table);
-        $this->generateModel($table, $model);
-        $this->generateRequest($model);
-        $this->generateService($model);
-        $this->generateController($model);
-        $this->info("CRUD for {$model} generated successfully.");
+        $this->generateBladeViews($table, $title);
+        $this->generateRouteEntry($table, $model);
+
+        $this->info("CRUD for {$model} generated successfully!");
     }
 
-    protected function checkAndCreateDirectory($path)
+    protected function generateFile(string $stubName, string $subPath, string $fileName, array $replacements)
     {
-        if (!File::isDirectory($path)) {
-            File::makeDirectory($path, 0755, true);
-            $this->info("Directory created: {$path}");
+        $stub = file_get_contents(__DIR__ . "/../Stubs/{$stubName}.stub");
+        $content = str_replace(array_keys($replacements), array_values($replacements), $stub);
+
+        $filePath = app_path("{$subPath}/{$fileName}");
+        File::ensureDirectoryExists(dirname($filePath));
+        File::put($filePath, $content);
+
+        $this->info("Created: {$filePath}");
+    }
+
+    protected function generateMigration(string $table)
+    {
+        $stub = file_get_contents(__DIR__ . '/../Stubs/migration.stub');
+        $content = str_replace('{{table}}', $table, $stub);
+
+        $filePath = database_path('migrations/' . date('Y_m_d_His') . "_create_{$table}_table.php");
+        File::put($filePath, $content);
+
+        $this->info("Created: {$filePath}");
+    }
+
+    protected function generateBladeViews(string $table, string $title)
+    {
+        $viewPath = resource_path("views/vendor/simple-crud/{$table}");
+        File::ensureDirectoryExists($viewPath);
+
+        foreach (['index', 'create', 'edit'] as $view) {
+            $stub = file_get_contents(__DIR__ . "/../resources/views/stubs/blade/{$view}.stub");
+            $content = str_replace([
+                '{{table}}',
+                '{{title}}',
+                '{{model}}'
+            ], [
+                $table,
+                $title,
+                Str::studly(Str::singular($table))
+            ], $stub);
+
+            File::put("{$viewPath}/{$view}.blade.php", $content);
+            $this->info("Created view: {$viewPath}/{$view}.blade.php");
         }
     }
 
-    protected function getStub($type)
+    protected function generateRouteEntry(string $table, string $model)
     {
-        return file_get_contents(__DIR__ . "/../Stubs/{$type}.stub");
-    }
+        $routePath = base_path('routes/web.php');
+        $route = "\nRoute::resource('{$table}', App\\Http\\Controllers\\{$model}Controller::class);";
 
-    protected function generateMigration($table)
-    {
-        $table = strtolower($table);
-        $stub = $this->getStub('migration');
-        $migrationContent = str_replace('{{table}}', strtolower($table), $stub);
-        $migrationFile = database_path('migrations') . '/' . date('Y_m_d_His') . "_create_{$table}_table.php";
-        File::put($migrationFile, $migrationContent);
-        $this->info("Migration created: {$migrationFile}");
+        if (!Str::contains(file_get_contents($routePath), $route)) {
+            File::append($routePath, $route);
+            $this->info("Added route to routes/web.php");
+        } else {
+            $this->warn("Route already exists in routes/web.php");
+        }
     }
-
-    protected function generateModel($table, $model)
-    {
-        $stub = $this->getStub('model');
-        $modelContent = str_replace(['{{table}}', '{{model}}'], [strtolower($table), $model], $stub);
-        $modelFile = app_path("Models/{$model}.php");
-        File::put($modelFile, $modelContent);
-        $this->info("Model created: {$modelFile}");
-    }
-
-    protected function generateRequest($model)
-    {
-        $stub = $this->getStub('request');
-        $requestContent = str_replace('{{model}}', $model, $stub);
-        $requestFile = app_path("Http/Requests/{$model}Request.php");
-        File::put($requestFile, $requestContent);
-        $this->info("Request created: {$requestFile}");
-    }
-
-    protected function generateService($model)
-    {
-        $stub = $this->getStub('service');
-        $serviceContent = str_replace('{{model}}', $model, $stub);
-        $serviceFile = app_path("Services/{$model}Service.php");
-        File::put($serviceFile, $serviceContent);
-        $this->info("Service created: {$serviceFile}");
-    }
-
-    protected function generateController($model)
-    {
-        $stub = $this->getStub('controller');
-        $controllerContent = str_replace('{{model}}', $model, $stub);
-        $controllerFile = app_path("Http/Controllers/{$model}Controller.php");
-        File::put($controllerFile, $controllerContent);
-        $this->info("Controller created: {$controllerFile}");
-    }
-
 }

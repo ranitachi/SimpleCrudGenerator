@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class {{model}} extends Model
 {
@@ -12,10 +13,14 @@ class {{model}} extends Model
     protected $table = '{{table}}';
 
     protected $fillable = [
-        // List your fillable columns here
+{{fillable}}
     ];
 
-    protected $dates = ['deleted_at'];
-
-    // Additional model properties and methods
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            $model->uuid = (string) Str::uuid();
+        });
+    }
 }

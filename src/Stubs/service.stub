@@ -3,53 +3,46 @@
 namespace App\Services;
 
 use App\Models\{{model}};
+use Illuminate\Http\Request;
 
 class {{model}}Service
 {
-    protected $model;
-
-    public function __construct({{model}} $model)
-    {
-        $this->model = $model;
-    }
-
     public function fetch()
     {
-        return $this->model->orderBy('id')->get();
-    }
-
-    public function fetchDT()
-    {
-        return $this->model->orderBy('id');
+        return {{model}}::orderByDesc('created_at')->get();
     }
 
     public function get($uuid)
     {
-        return $this->model->where('uuid', $uuid)->first();
+        return {{model}}::where('uuid', $uuid)->first();
     }
 
-    public function store($request)
+    public function store(array $data)
     {
-        $this->model->create([
-            'column_1' => $request->input('column_1', ''),
-            'column_2' => $request->input('column_2', ''),
-            // Add other fields here
-        ]);
+        return {{model}}::create($data);
     }
 
-    public function update($request, $uuid)
+    public function update({{model}} $model, array $data)
     {
-        $get = $this->get($uuid);
-        $data = [
-            'column_1' => $request->input('column_1', $get->column_1),
-            'column_2' => $request->input('column_2', $get->column_2),
-            // Add other fields here
+        return $model->update($data);
+    }
+
+    public function delete({{model}} $model)
+    {
+        return $model->delete();
+    }
+
+    public function getFields(?{{model}} $data = null): array
+    {
+        return [
+{{fields}}
         ];
-        $this->model->where('uuid', $uuid)->update($data);
     }
 
-    public function destroy($uuid)
+    public function getDatatableColumns(): array
     {
-        $this->model->where('uuid', $uuid)->delete();
+        return [
+{{datatable}}
+        ];
     }
 }

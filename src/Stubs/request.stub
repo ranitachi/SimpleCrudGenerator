@@ -11,17 +11,15 @@ class {{model}}Request extends FormRequest
         return true;
     }
 
-    public function rules()
+    public function rules(): array
     {
         return [
-            // Add your validation rules
+{{rules}}
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
-        return [
-            // Custom error messages
-        ];
+        return [];
     }
 }

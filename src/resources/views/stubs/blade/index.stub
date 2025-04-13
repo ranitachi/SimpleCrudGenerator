@@ -1,0 +1,15 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container py-4">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Data {{title}}</h5>
+      <a href="{{ route('{{table}}.create') }}" class="btn btn-primary">+ Tambah</a>
+    </div>
+    <div class="card-body">
+      <x-datatable :columns="$columns" title="Manajemen {{title}}" ajax="{{ route('{{table}}.datatable') }}" />
+    </div>
+  </div>
+</div>
+@endsection
