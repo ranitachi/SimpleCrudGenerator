@@ -18,7 +18,7 @@
       "Fcn\\SimpleCrudGenerator\\": "src/"
     }
   },
-  "version": "1.0.0",
+  "version": "1.0.2",
   "extra": {
     "laravel": {
       "providers": [
