@@ -4,22 +4,68 @@ namespace App\Services;
 
 use App\Models\{{model}};
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class {{model}}Service
 {
-    public function fetch()
+    protected $model;
+
+    public function __construct({{model}} $model)
     {
-        return {{model}}::orderByDesc('created_at')->get();
+        $this->model = $model;
     }
 
-    public function get($uuid)
+    public function find($id)
     {
-        return {{model}}::where('uuid', $uuid)->first();
+        return $this->model->findOrFail($id);
+    }
+
+    public function getQuery(Request $request)
+    {
+        $query = $this->model->query();
+
+        if ($filters = $request->input('filter')) {
+            foreach ($filters as $field => $value) {
+                if (!empty($value)) {
+                    $query->where($field, 'like', "%$value%");
+                }
+            }
+        }
+
+        return $query;
+    }
+
+    public function getDatatableResponse(Request $request)
+    {
+        return DataTables::of($this->getQuery($request))
+            ->addIndexColumn()
+            ->addColumn('action', function ($row) {
+                return view('components.datatable-action', ['data' => $row]);
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+
+    public function getDatatableColumns(): array
+    {
+        return [
+            ['label' => 'No', 'data' => 'DT_RowIndex', 'orderable' => false, 'searchable' => false],
+            {{datatable}}
+            ['label' => 'Aksi', 'data' => 'action', 'name' => 'action', 'orderable' => false, 'searchable' => false],
+        ];
+    }
+
+    public function getFields(?{{model}} $data = null): array
+    {
+        return [
+            {{fields}}
+        ];
     }
 
     public function store(array $data)
     {
-        return {{model}}::create($data);
+        return $this->model->create($data);
     }
 
     public function update({{model}} $model, array $data)
@@ -30,19 +76,5 @@ class {{model}}Service
     public function delete({{model}} $model)
     {
         return $model->delete();
-    }
-
-    public function getFields(?{{model}} $data = null): array
-    {
-        return [
-{{fields}}
-        ];
-    }
-
-    public function getDatatableColumns(): array
-    {
-        return [
-{{datatable}}
-        ];
     }
 }
