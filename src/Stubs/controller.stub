@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\{{model}}Service;
 use App\Http\Requests\{{model}}Request;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -19,13 +20,20 @@ class {{model}}Controller extends Controller
 
     public function index()
     {
-        return response()->json($this->service->fetch());
+        $columns = $this->service->getDatatableColumns();
+        return view('vendor.simple-crud.{{table}}.index', compact('columns'));
     }
 
-    public function show($uuid)
+    public function datatable(Request $request)
     {
-        $record = $this->service->get($uuid);
-        return $record ? response()->json($record) : response()->json(['message' => 'Not found'], 404);
+        return $this->service->getDatatableResponse($request);
+    }
+
+    public function create()
+    {
+        $fields = $this->service->getFields();
+        $action = route('{{table}}.store');
+        return view('vendor.simple-crud.{{table}}.create', compact('fields', 'action'));
     }
 
     public function store({{model}}Request $request)
@@ -34,40 +42,47 @@ class {{model}}Controller extends Controller
         try {
             $this->service->store($request->validated());
             DB::commit();
-            return response()->json(['message' => '{{model}} created successfully'], 201);
+            return redirect()->route('{{table}}.index')->with('success', 'Data berhasil disimpan');
         } catch (Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
-    public function update({{model}}Request $request, $uuid)
+    public function edit($id)
+    {
+        $data = $this->service->find($id);
+        $fields = $this->service->getFields($data);
+        $action = route('{{table}}.update', $id);
+        $method = 'PUT';
+        return view('vendor.simple-crud.{{table}}.edit', compact('fields', 'action', 'method', 'data'));
+    }
+
+    public function update({{model}}Request $request, $id)
     {
         DB::beginTransaction();
         try {
-            $record = $this->service->get($uuid);
-            if (!$record) return response()->json(['message' => 'Not found'], 404);
-            $this->service->update($record, $request->validated());
+            $data = $this->service->find($id);
+            $this->service->update($data, $request->validated());
             DB::commit();
-            return response()->json(['message' => '{{model}} updated']);
+            return redirect()->route('{{table}}.index')->with('success', 'Data berhasil diperbarui');
         } catch (Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
-    public function destroy($uuid)
+    public function destroy($id)
     {
         DB::beginTransaction();
         try {
-            $record = $this->service->get($uuid);
-            if (!$record) return response()->json(['message' => 'Not found'], 404);
-            $this->service->delete($record);
+            $data = $this->service->find($id);
+            $this->service->delete($data);
             DB::commit();
-            return response()->json(['message' => 'Deleted successfully']);
+            return redirect()->route('{{table}}.index')->with('success', 'Data berhasil dihapus');
         } catch (Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 }
