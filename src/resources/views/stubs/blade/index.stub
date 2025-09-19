@@ -8,7 +8,7 @@
       <a href="{{ route('{{table}}.create') }}" class="btn btn-primary">+ Tambah</a>
     </div>
     <div class="card-body">
-      <x-datatable :columns="$columns" title="Manajemen {{title}}" ajax="{{ route('{{table}}.datatable') }}" />
+      <x-datatable :columns="$columns" title="Manajemen {{title}}" ajax="{{ route('{{table}}.datatable') }}" :datatablebasepath="$datatableBasePath"/>
     </div>
   </div>
 </div>

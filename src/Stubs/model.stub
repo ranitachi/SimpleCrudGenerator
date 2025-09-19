@@ -12,9 +12,7 @@ class {{model}} extends Model
 
     protected $table = '{{table}}';
 
-    protected $fillable = [
-{{fillable}}
-    ];
+        protected $fillable = {{fillable}};
 
     protected static function boot()
     {

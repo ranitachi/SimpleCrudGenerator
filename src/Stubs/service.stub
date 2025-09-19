@@ -38,29 +38,55 @@ class {{model}}Service
 
     public function getDatatableResponse(Request $request)
     {
-        return DataTables::of($this->getQuery($request))
-            ->addIndexColumn()
-            ->addColumn('action', function ($row) {
-                return view('components.datatable-action', ['data' => $row]);
-            })
-            ->rawColumns(['action'])
-            ->make(true);
+        $query = $this->getQuery($request);
+
+        $datatable = DataTables::of($query)->addIndexColumn();
+
+        // === Tambahkan kolom FLAG kalau ada ===
+        $flagFields = ['flag', 'status_aktif', 'status', 'flag_aktif'];
+        foreach ($flagFields as $flagField) {
+            if (isset($query->first()->{$flagField})) {
+                $datatable->addColumn($flagField, function ($row) use ($flagField) {
+                    return $row->{$flagField}
+                        ? '<span class="badge bg-success">Aktif</span>'
+                        : '<span class="badge bg-secondary">Nonaktif</span>';
+                });
+                $rawColumns[] = $flagField;
+                break;
+            }
+        }
+
+        // === Tambahkan kolom media (preview image) kalau ada ===
+        $mediaFields = ['preview', 'foto', 'icon', 'image', 'images', 'photo', 'picture'];
+        foreach ($mediaFields as $mediaField) {
+            if (isset($query->first()->{$mediaField})) {
+                $datatable->addColumn($mediaField, function ($row) use ($mediaField) {
+                    $src = asset('storage/' . $row->{$mediaField});
+                    return '<img src="' . $src . '" alt="' . $mediaField . '" style="max-height: 60px; max-width: 100px;">';
+                });
+                $rawColumns[] = $mediaField;
+                break;
+            }
+        }
+
+        // === Set rawColumns kalau ada ===
+        if (!empty($rawColumns)) {
+            $datatable->rawColumns($rawColumns);
+        }
+
+        return $datatable->make(true);
     }
+
+
 
     public function getDatatableColumns(): array
     {
-        return [
-            ['label' => 'No', 'data' => 'DT_RowIndex', 'orderable' => false, 'searchable' => false],
-            {{datatable}}
-            ['label' => 'Aksi', 'data' => 'action', 'name' => 'action', 'orderable' => false, 'searchable' => false],
-        ];
+        return {{datatable}};
     }
 
     public function getFields(?{{model}} $data = null): array
     {
-        return [
-            {{fields}}
-        ];
+        return {{fields}};
     }
 
     public function store(array $data)

@@ -125,8 +125,30 @@ class CrudSchemaParser
 
     public static function formatArray($array, int $indent = 2): string
     {
+        // Deteksi array of array (khusus datatable, agar tidak jadi assoc)
+        if (is_array($array) && isset($array[0]) && is_array($array[0])) {
+            $result = "[\n";
+            $pad = str_repeat('    ', $indent);
+
+            foreach ($array as $item) {
+                $itemStr = '[' . implode(', ', array_map(function ($k, $v) {
+                    return "'$k' => " . (is_string($v)
+                        ? (Str::startsWith($v, 'old(') || Str::startsWith($v, '$data') || Str::startsWith($v, 'asset(')
+                            ? $v
+                            : "'" . str_replace("'", "\\'", $v) . "'")
+                        : (is_bool($v) ? ($v ? 'true' : 'false') : (is_null($v) ? 'null' : $v)));
+                }, array_keys($item), $item)) . ']';
+
+                $result .= $pad . $itemStr . ",\n";
+            }
+
+            $result .= str_repeat('    ', $indent - 1) . "]";
+            return $result;
+        }
+
         return self::formatArrayRecursive($array, $indent);
     }
+
 
     protected static function formatArrayRecursive($array, int $indent = 2): string
     {

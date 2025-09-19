@@ -29,7 +29,8 @@ class GenerateCrudCommand extends Command
         $fillable = CrudSchemaParser::formatArray($fillableArray);
         $rules = CrudSchemaParser::formatArray($rulesArray);
         $fields = CrudSchemaParser::formatArray($fieldArray);
-        $datatable = CrudSchemaParser::formatArray($datatableArray);
+        // JANGAN di-format dulu di sini!
+        // $datatable = CrudSchemaParser::formatArray($datatableArray);
 
         $this->checkAndCreateDirectory(app_path('Models'));
         $this->checkAndCreateDirectory(app_path('Http/Controllers'));
@@ -40,8 +41,9 @@ class GenerateCrudCommand extends Command
         $this->generateMigration($table);
         $this->generateModel($table, $model, $fillable);
         $this->generateRequest($model, $rules);
-        $this->generateService($model, $fields, $datatable);
-        $this->generateController($model);
+        $this->generateService($model, $fields, $datatableArray); // Kirim array asli
+        $this->generateController($model, Str::slug($table));
+        $this->generateBladeViews($table, Str::headline($table));
 
         $this->info("✅ CRUD for {$model} generated successfully.");
     }
@@ -82,26 +84,60 @@ class GenerateCrudCommand extends Command
         $stub = $this->getStub('request');
         $stub = str_replace(['{{model}}', '{{rules}}'], [$model, $rules], $stub);
         $requestFile = app_path("Http/Requests/{$model}Request.php");
-        File::put($requestFile, $requestFile);
         File::put($requestFile, $stub);
         $this->info("🛡️ Request created: {$requestFile}");
     }
 
-    protected function generateService($model, $fields, $datatable)
+    protected function generateService($model, $fields, $datatableArray)
     {
         $stub = $this->getStub('service');
+
+        // Wrap datatable with default "No" and "Aksi" entries
+        $datatableWrapped = array_merge(
+            [['label' => 'No', 'data' => 'DT_RowIndex', 'orderable' => false, 'searchable' => false]],
+            $datatableArray,
+            [['label' => 'Aksi', 'data' => 'action', 'name' => 'action', 'orderable' => false, 'searchable' => false]]
+        );
+
+        // Format after wrapping
+        $datatable = CrudSchemaParser::formatArray($datatableWrapped, 3);
+
         $stub = str_replace(['{{model}}', '{{fields}}', '{{datatable}}'], [$model, $fields, $datatable], $stub);
+
         $serviceFile = app_path("Services/{$model}Service.php");
         File::put($serviceFile, $stub);
         $this->info("⚙️ Service created: {$serviceFile}");
     }
 
-    protected function generateController($model)
+    protected function generateController($model, $table)
     {
         $stub = $this->getStub('controller');
         $stub = str_replace('{{model}}', $model, $stub);
+        $stub = str_replace('{{table}}', $table, $stub);
         $controllerFile = app_path("Http/Controllers/{$model}Controller.php");
         File::put($controllerFile, $stub);
         $this->info("🎮 Controller created: {$controllerFile}");
+    }
+
+    protected function generateBladeViews(string $table, string $title)
+    {
+        $viewPath = resource_path("views/vendor/simple-crud/{$table}");
+        File::ensureDirectoryExists($viewPath);
+
+        foreach (['index', 'create', 'edit'] as $view) {
+            $stub = file_get_contents(__DIR__ . "/../resources/views/stubs/blade/{$view}.stub");
+            $content = str_replace([
+                '{{table}}',
+                '{{title}}',
+                '{{model}}'
+            ], [
+                $table,
+                $title,
+                Str::studly(Str::singular($table))
+            ], $stub);
+
+            File::put("{$viewPath}/{$view}.blade.php", $content);
+            $this->info("📄 Created view: {$viewPath}/{$view}.blade.php");
+        }
     }
 }

@@ -13,9 +13,9 @@ class {{model}}Request extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return
 {{rules}}
-        ];
+        ;
     }
 
     public function messages(): array

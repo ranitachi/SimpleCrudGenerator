@@ -21,6 +21,7 @@ class {{model}}Controller extends Controller
     public function index()
     {
         $columns = $this->service->getDatatableColumns();
+        $datatableBasePath  = '/admin/{{table}}';
         return view('vendor.simple-crud.{{table}}.index', compact('columns'));
     }
 
@@ -32,8 +33,7 @@ class {{model}}Controller extends Controller
     public function create()
     {
         $fields = $this->service->getFields();
-        $action = route('{{table}}.store');
-        return view('vendor.simple-crud.{{table}}.create', compact('fields', 'action'));
+        return view('vendor.simple-crud.{{table}}.create', compact('fields'));
     }
 
     public function store({{model}}Request $request)
@@ -53,9 +53,7 @@ class {{model}}Controller extends Controller
     {
         $data = $this->service->find($id);
         $fields = $this->service->getFields($data);
-        $action = route('{{table}}.update', $id);
-        $method = 'PUT';
-        return view('vendor.simple-crud.{{table}}.edit', compact('fields', 'action', 'method', 'data'));
+        return view('vendor.simple-crud.{{table}}.edit', compact('fields', 'data'));
     }
 
     public function update({{model}}Request $request, $id)
